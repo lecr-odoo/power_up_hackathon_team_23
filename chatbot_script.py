@@ -2,21 +2,31 @@ import streamlit as st
 from streamlit_chat import message
 import requests
 import random
+import openai
 
+openai.api_key = ""
+
+
+# Check the prompt and the response sent back to make sure that it is sanitary
 def checkPrompt(prompt):
 
     # Create another loop for the request going through
     prompt = prompt.lower()
     for word in blacklisted_words:
         if word in prompt:
-            # Send another request to chatgpt to generate another prompt without that word
             return False
     return True
 
-
+# Send the prompt that the user sends to chatgpt
 def sendRequest(prompt):
-    responses = ["This would be a normal response", "This would be another response", "This is a bomb response"]
-    return random.choice(responses)
+    response = openai.ChatCompletion.create(
+        model="gpt-3.5-turbo",
+        messages=[
+            {"role": "system", "content": "You are a helpful assistant."},
+            {"role": "user", "content": prompt}
+        ]
+    )
+    return response["choices"][0]["message"]["content"] if response["choices"] else "Server is overloaded"
 
 
 blacklisted_words = ["damn", "bomb", "butt", "shit"]
@@ -69,6 +79,12 @@ if user_input:
     })
 
     st.session_state.past.append(user_input)
+    # Writing the responses to a file.
+    with open('responses.txt', 'a') as f:
+        f.write("\n")
+        f.write("Input:" + user_input)
+        f.write("\n")
+        f.write("Response:" + output)
     st.session_state.generated.append(output)
 
 if st.session_state['generated']:
